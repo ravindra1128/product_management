@@ -1,14 +1,28 @@
 const pool = require('./db');
 
-async function getAllProducts(userId, category) {
-  let query = 'SELECT * FROM products WHERE user_id = $1';
+async function getAllProducts(userId, category, skip = 0, limit = 10) {
+  let baseQuery = 'FROM products WHERE user_id = $1';
   let params = [userId];
+  
   if (category) {
-    query += ' AND category = $2';
+    baseQuery += ' AND category = $2';
     params.push(category);
   }
-  const res = await pool.query(query, params);
-  return res.rows;
+  
+  // Get total count
+  const countQuery = `SELECT COUNT(*) ${baseQuery}`;
+  const countRes = await pool.query(countQuery, params);
+  const total = parseInt(countRes.rows[0].count);
+  
+  // Get paginated products
+  const productsQuery = `SELECT * ${baseQuery} ORDER BY id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  params.push(limit, skip);
+  const productsRes = await pool.query(productsQuery, params);
+  
+  return {
+    products: productsRes.rows,
+    total
+  };
 }
 
 async function getProductById(id, userId) {

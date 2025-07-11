@@ -2,8 +2,19 @@ const productModel = require('../models/product');
 
 async function getAll(req, res) {
   const category = req.query.category;
-  const products = await productModel.getAllProducts(req.userId, category);
-  res.json(products);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const { products, total } = await productModel.getAllProducts(req.userId, category, skip, limit);
+  
+  res.json({
+    products,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    totalItems: total,
+    itemsPerPage: limit
+  });
 }
 
 async function getById(req, res) {
